@@ -289,7 +289,7 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: The file to be processed (mutually exclusive with 'files').
+                  description: "The image file to be processed (mutually exclusive with 'files'). Supported formats: JPG, PNG, WEBP."
                 files:
                   type: array
                   items:
