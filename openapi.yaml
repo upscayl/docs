@@ -12,700 +12,46 @@ servers:
   - url: https://api.upscayl.org
     description: Upscayl Server
 
-security:
-  - ApiKeyAuth: []
-components:
-  responses:
-    BadRequest:
-      description: Invalid request parameters
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-          example:
-            error: BAD_REQUEST
-            message: "Invalid request parameters provided"
-
-    NotFound:
-      description: Requested resource not found
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-          example:
-            error: NOT_FOUND
-            message: "Requested resource could not be found"
-    Unauthorized:
-      description: Authentication failed or API key missing
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-          example:
-            error: UNAUTHORIZED
-            message: "Invalid or missing API key"
-
-    TooManyRequests:
-      description: Rate limit exceeded
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-          example:
-            error: RATE_LIMIT_EXCEEDED
-            message: "Too many requests. Try again in 1 hour"
-    InternalError:
-      description: Internal server error occurred
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-          example:
-            error: INTERNAL_SERVER_ERROR
-            message: "An unexpected error occurred"
-  securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
-  schemas:
-    TaskStatus:
-      type: object
-      required:
-        - status
-        - data
-      properties:
-        status:
-          type: string
-          enum: [success]
-        data:
-          type: object
-          properties:
-            batchMode:
-              type: boolean
-              description: Whether task is in batch mode
-            enhanceFace:
-              type: boolean
-              description: Whether face enhancement is enabled
-            error:
-              type: string
-              description: Error message if task failed
-            files:
-              type: array
-              items:
-                $ref: "#/components/schemas/ProcessedFile"
-            model:
-              type: string
-              description: AI model used for processing
-              enum:
-                [
-                  upscayl-standard-4x,
-                  upscayl-lite-4x,
-                  clear-boost-4x,
-                  crystal-plus-4x,
-                  digital-art-4x,
-                  digital-art-plus-4x,
-                  natural-max-4x,
-                  natural-plus-4x,
-                  nature-boost-4x,
-                  pure-boost-4x,
-                  quick-clear-4x,
-                  texture-boost-4x,
-                ]
-            progress:
-              type: string
-              description: Processing progress percentage
-            scale:
-              type: string
-              description: Upscale factor applied
-            status:
-              type: string
-              enum: [pending, processing, completed, failed]
-            saveImageAs:
-              type: string
-              enum: [png, jpg, webp]
-            # compression:
-            #   type: number
-            #   minimum: 0
-            #   maximum: 100
-            creditsDeducted:
-              type: boolean
-            deductedCredits:
-              type: number
-    UploadedFile:
-      type: object
-      required:
-        - fileName
-        - fileType
-        - fileSize
-      properties:
-        fileName:
-          type: string
-          description: Unique file identifier
-        fileType:
-          type: string
-          description: MIME type of file
-          enum: [image/jpeg, image/png, image/webp]
-        fileSize:
-          type: integer
-          description: File size in bytes
-          minimum: 1
-          maximum: 104857600
-        originalFileName:
-          type: string
-          description: Original uploaded filename
-        createdAt:
-          type: integer
-          format: int64
-          description: Upload timestamp (Unix ms)
-        expiresAt:
-          type: integer
-          format: int64
-          description: Expiration timestamp (Unix ms)
-    ProcessingTask:
-      type: object
-      properties:
-        batchMode:
-          type: boolean
-          description: Whether task was processed in batch mode
-        enhanceFace:
-          type: boolean
-          description: Whether face enhancement was applied
-        error:
-          type: string
-          description: Error message if processing failed
-        files:
-          type: array
-          items:
-            $ref: "#/components/schemas/ProcessedFile"
-        model:
-          type: string
-          description: AI model used for processing
-          enum:
-            [
-              upscayl-standard-4x,
-              upscayl-lite-4x,
-              clear-boost-4x,
-              crystal-plus-4x,
-              digital-art-4x,
-              digital-art-plus-4x,
-              natural-max-4x,
-              natural-plus-4x,
-              nature-boost-4x,
-              pure-boost-4x,
-              quick-clear-4x,
-              texture-boost-4x,
-            ]
-        progress:
-          type: string
-          description: Processing progress percentage
-        scale:
-          type: string
-          description: Upscale factor applied
-        status:
-          type: string
-          enum: [pending, processing, completed, failed]
-        saveImageAs:
-          type: string
-          enum: [png, jpg, webp]
-        # compression:
-        #   type: number
-        #   minimum: 0
-        #   maximum: 100
-        creditsDeducted:
-          type: boolean
-
-    ProcessedFile:
-      type: object
-      properties:
-        fileName:
-          type: string
-        fileType:
-          type: string
-        path:
-          type: string
-        createdAt:
-          type: integer
-          format: int64
-        expiresAt:
-          type: integer
-          format: int64
-        originalFileName:
-          type: string
-        fileSize:
-          type: integer
-        downloadLink:
-          type: string
-          format: uri
-        thumbnailLink:
-          type: string
-          format: uri
-        finalFileSize:
-          type: integer
-        processedFileName:
-          type: string
-        dimensions:
-          type: object
-          properties:
-            width:
-              type: integer
-              minimum: 1
-            height:
-              type: integer
-              minimum: 1
-    Error:
-      type: object
-      properties:
-        error:
-          type: string
-        message:
-          type: string
-tags:
-  - name: Upload
-    description: File upload operations
-  - name: Tasks
-    description: Image processing task operations
-  - name: History
-    description: Historical data operations
-
 paths:
-  /get-upload-url:
-    post:
-      tags:
-        - Upload
-      summary: Generate Pre-signed Upload URL
-      description: |
-        Generates a pre-signed URL for secure direct file upload to cloud storage.
-        The URL expires after a specified duration for security.
-
-        **Note**: File size is limited to 100MB per upload.
-      operationId: getUploadUrl
-      security:
-        - ApiKeyAuth: []
-      x-rateLimit:
-        requests: 100
-        period: 1 hour
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - originalFileName
-                - fileType
-                - fileSize
-              properties:
-                originalFileName:
-                  type: string
-                  description: Original name of the file to be uploaded
-                  example: vacation-photo.jpeg
-                  minLength: 1
-                  maxLength: 255
-                fileType:
-                  type: string
-                  description: MIME type of the file
-                  example: image/jpeg
-                  enum:
-                    - image/jpeg
-                    - image/png
-                    - image/webp
-                fileSize:
-                  type: integer
-                  description: File size in bytes (max 100MB)
-                  example: 1048576
-                  minimum: 1
-                  maximum: 104857600
-      responses:
-        "200":
-          description: Pre-signed URL generated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - status
-                  - data
-                properties:
-                  status:
-                    type: string
-                    enum: [success]
-                  data:
-                    type: object
-                    required:
-                      - uploadURL
-                      - fileName
-                      - expiresAt
-                    properties:
-                      uploadURL:
-                        type: string
-                        format: uri
-                        description: Pre-signed URL for upload
-                        example: https://storage.upscayl.com/upload/abc123
-                      fileName:
-                        type: string
-                        description: Generated unique filename
-                        example: f7d9a2b4-vacation-photo.jpeg
-                      fileType:
-                        type: string
-                        description: MIME type of file
-                        example: image/jpeg
-                      fileSize:
-                        type: integer
-                        description: File size in bytes
-                        example: 1048576
-                      originalFileName:
-                        type: string
-                        description: Original filename
-                        example: vacation-photo.jpeg
-                      createdAt:
-                        type: integer
-                        format: int64
-                        description: URL creation timestamp (Unix ms)
-                        example: 1633024800000
-                      expiresAt:
-                        type: integer
-                        format: int64
-                        description: URL expiration timestamp (Unix ms)
-                        example: 1633028400000
-        "400":
-          description: Invalid request parameters
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              examples:
-                InvalidFileType:
-                  value:
-                    error: INVALID_FILE_TYPE
-                    message: "Unsupported file type. Allowed: JPEG, PNG, WEBP"
-                FileSizeTooLarge:
-                  value:
-                    error: FILE_SIZE_EXCEEDED
-                    message: "File size exceeds maximum limit of 100MB"
-                MissingFields:
-                  value:
-                    error: MISSING_REQUIRED_FIELDS
-                    message: "Required fields missing: originalFileName"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /get-upscayl-history:
-    post:
-      tags:
-        - History
-      summary: Get Image Processing History
-      description: |
-        Retrieves paginated history of image processing tasks.
-        Results can be filtered by status and time range.
-      operationId: getUpscaylHistory
-      security:
-        - ApiKeyAuth: []
-      x-rateLimit:
-        requests: 100
-        period: 1 hour
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                timestampOffset:
-                  type: integer
-                  format: int64
-                  description: Unix timestamp (ms) to start fetching records from
-                  example: 1633024800000
-                batch:
-                  type: boolean
-                  description: Filter by batch processing status
-                  example: true
-                failed:
-                  type: boolean
-                  description: Filter by failed status
-                  example: false
-                limit:
-                  type: integer
-                  minimum: 1
-                  maximum: 100
-                  default: 20
-                  description: Number of records to return per page
-                  example: 10
-                processed:
-                  type: string
-                  enum: [pending, processing, completed, failed]
-                  description: Filter by processing status
-                  example: processing
-      responses:
-        "200":
-          description: Successfully retrieved history
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - status
-                  - data
-                  - pagination
-                properties:
-                  status:
-                    type: string
-                    enum: [success]
-                  pagination:
-                    type: object
-                    properties:
-                      total:
-                        type: integer
-                        description: Total number of records
-                      hasMore:
-                        type: boolean
-                        description: Whether more records exist
-                      nextOffset:
-                        type: integer
-                        format: int64
-                        description: Timestamp offset for next page
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/ProcessingTask"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /get-task-status:
-    post:
-      tags:
-        - Tasks
-      summary: Check Task Status
-      description: |
-        Get current status and progress of an upscaling task.
-        Returns detailed information about the task including processed files and progress.
-      operationId: getTaskStatus
-      security:
-        - ApiKeyAuth: []
-      x-rateLimit:
-        requests: 100
-        period: 1 hour
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - taskId
-              properties:
-                taskId:
-                  type: string
-                  format: uuid
-                  description: Task ID returned by start-task endpoint. See [Start Image Upscaling Task](/start-a-new-task).
-                  example: 30a89e69-c702-4247-9905-f0a53dfa45ab
-      responses:
-        "200":
-          description: Task status retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TaskStatus"
-              example:
-                status: success
-                data:
-                  batchMode: false
-                  enhanceFace: true
-                  model: digital-art-4x
-                  progress: "75"
-                  scale: "4"
-                  status: processing
-                  files: []
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /start-task:
-    post:
-      tags:
-        - Tasks
-      summary: Start Task
-      description: |
-        Initiates a new image upscaling task with specified parameters.
-        Supports both direct file upload and processing of previously uploaded files.
-      operationId: startTask
-      security:
-        - ApiKeyAuth: []
-      x-rateLimit:
-        requests: 50
-        period: 1 hour
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                files:
-                  type: array
-                  items:
-                    $ref: "#/components/schemas/UploadedFile"
-                  description: Array of previously uploaded files to process
-                file:
-                  type: string
-                  format: binary
-                  description: Single file for direct upload (mutually exclusive with files array)
-                enhanceFace:
-                  type: boolean
-                  description: Enable face enhancement
-                  default: false
-                model:
-                  type: string
-                  description: AI model for upscaling
-                  enum:
-                    [
-                      upscayl-standard-4x,
-                      upscayl-lite-4x,
-                      clear-boost-4x,
-                      crystal-plus-4x,
-                      digital-art-4x,
-                      digital-art-plus-4x,
-                      natural-max-4x,
-                      natural-plus-4x,
-                      nature-boost-4x,
-                      pure-boost-4x,
-                      quick-clear-4x,
-                      texture-boost-4x,
-                    ]
-                  example: digital-art
-                scale:
-                  type: string
-                  description: Upscaling factor
-                  enum: ["2", "4", "8"]
-                  example: "4"
-                # TODO: compression:
-                #   type: number
-                #   description: Output image compression (0-100)
-                #   minimum: 0
-                #   maximum: 100
-                #   default: 0
-                saveImageAs:
-                  type: string
-                  enum: [png, jpg, webp]
-                  description: Output image format
-                  default: jpg
-      responses:
-        "200":
-          description: Task started successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - status
-                  - data
-                properties:
-                  status:
-                    type: string
-                    enum: [success]
-                  data:
-                    type: object
-                    required:
-                      - taskId
-                      - message
-                    properties:
-                      taskId:
-                        type: string
-                        format: uuid
-                        example: 30a89e69-c702-4247-9905-f0a53dfa45ab
-                      message:
-                        type: string
-                        example: Task request sent successfully
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "402":
-          description: Insufficient credits
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: INSUFFICIENT_CREDITS
-                message: Not enough credits to process request
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalError"
   /complete-multipart-upload:
     post:
-      tags:
-        - Upload
       summary: Complete Multipart Upload
       description: |
-        Completes a multipart upload by combining previously uploaded parts in S3.
-        Must be called after all parts have been uploaded using pre-signed URLs.
+        This endpoint marks a multipart upload as complete.
+        It requires the upload ID, a key, and a list of parts with their ETags. This endpoint is used after uploading parts to the multipart URLs generated by the [get-upload-url](/get-upload-url) endpoint.
       operationId: completeMultipartUpload
-      security:
-        - ApiKeyAuth: []
-      x-rateLimit:
-        requests: 50
-        period: 1 hour
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-                - data
               properties:
                 data:
                   type: object
+                  properties:
+                    uploadId:
+                      type: string
+                      description: The ID of the multipart upload.
+                    key:
+                      type: string
+                      description: The S3 key where the file is stored.
+                    parts:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          PartNumber:
+                            type: integer
+                            description: The part number.
+                          ETag:
+                            type: string
+                            description: The ETag of the uploaded part.
+                      description: A list of parts with their ETags.
                   required:
                     - uploadId
                     - key
                     - parts
-                  properties:
-                    uploadId:
-                      type: string
-                      description: S3 upload ID
-                      example: "abc123def456"
-                    key:
-                      type: string
-                      description: S3 object key
-                      example: "uploads/image.jpg"
-                    parts:
-                      type: array
-                      description: List of uploaded parts
-                      minItems: 1
-                      items:
-                        type: object
-                        required:
-                          - PartNumber
-                          - ETag
-                        properties:
-                          PartNumber:
-                            type: integer
-                            minimum: 1
-                            description: Part number
-                            example: 1
-                          ETag:
-                            type: string
-                            description: ETag from part upload
-                            example: "a1b2c3d4"
       responses:
         "200":
           description: Multipart upload completed successfully
@@ -713,38 +59,454 @@ paths:
             application/json:
               schema:
                 type: object
-                required:
-                  - status
-                  - data
                 properties:
                   status:
                     type: string
-                    enum: [success]
+                    example: success
                   data:
                     type: object
-                    required:
-                      - status
                     properties:
                       status:
                         type: string
-                        enum: [success]
+                        example: success
         "400":
-          description: Missing or invalid parameters
+          description: Bad Request
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: BAD_REQUEST
-                message: "Bad Request: Missing required parameters"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
+                type: object
+                example: "Bad Request: Missing required parameters"
         "500":
-          description: S3 or internal error
+          description: Internal Server Error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: INTERNAL_SERVER_ERROR
-                message: "Error completing multipart upload"
+                type: object
+                example: "Internal Server Error: Failed to complete upload"
+      security:
+        - ApiKeyAuth: []
+
+  /get-upload-url:
+    post:
+      summary: Get Multipart Upload URLs
+      description: |
+        This endpoint generates a URLs for uploading a file to upscayl servers in multipart format. This is useful for large files or slow connections.
+      operationId: getUploadUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    fileSize:
+                      type: integer
+                      description: The size of the file in bytes.
+                    fileType:
+                      type: string
+                      description: The MIME type of the file.
+                    originalFileName:
+                      type: string
+                      description: The original name of the file.
+                  required:
+                    - fileSize
+                    - fileType
+                    - originalFileName
+      responses:
+        "200":
+          description: Presigned URLs generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      uploadId:
+                        type: string
+                        description: The ID of the multipart upload.
+                      partUrls:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            partNumber:
+                              type: integer
+                              description: The part number for the upload.
+                            signedUrl:
+                              type: string
+                              description: The presigned URL for uploading the part.
+                      partSize:
+                        type: integer
+                        description: The size of each part in bytes.
+                      fileName:
+                        type: string
+                        description: The generated file name.
+                      fileType:
+                        type: string
+                        description: The MIME type of the file.
+                      fileSize:
+                        type: integer
+                        description: The size of the file in bytes.
+                      originalFileName:
+                        type: string
+                        description: The original name of the file.
+                      path:
+                        description: The path of the file to send to [start-task](/start-task).
+                      createdAt:
+                        type: integer
+                        description: Timestamp of URL generation.
+                      expiresAt:
+                        type: integer
+                        description: Timestamp of URL expiration.
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                example: "Bad Request: Missing User ID"
+        "402":
+          description: Payment Required
+          content:
+            application/json:
+              schema:
+                type: object
+                example: Insufficient credits
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                example: Internal Server Error
+      security:
+        - ApiKeyAuth: []
+
+  /get-task-status:
+    post:
+      summary: Get Task Status
+      description: |
+        This endpoint retrieves the status of a task, including whether it has been processed, credits deducted, and file download links.
+        It also handles credit deduction if the task is processed and credits have not been deducted yet.
+      operationId: getTaskStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    taskId:
+                      type: string
+                      description: The ID of the task to retrieve the status for.
+      responses:
+        "200":
+          description: Task status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        $ref: "#/components/schemas/Status"
+                      progress:
+                        type: string
+                        example: "100"
+                      files:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/FileData"
+                      deductedCredits:
+                        type: integer
+                        example: 10
+                      creditsDeducted:
+                        type: boolean
+                        example: true
+                      model:
+                        $ref: "#/components/schemas/Model"
+                      scale:
+                        type: integer
+                        example: 2
+                      saveImageAs:
+                        type: string
+                        example: "png"
+                      compression:
+                        type: integer
+                        example: 80
+                      batchMode:
+                        type: boolean
+                        example: false
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                example: "Bad Request: Missing User ID"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                example: Error getting data
+      security:
+        - ApiKeyAuth: []
+  /start-task:
+    post:
+      summary: Start Upscaling Task
+      description: |
+        This endpoint processes an upscaling task request, including file uploads.
+      operationId: getTaskStatus
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - enhanceFace
+                - model
+                - scale
+                - saveImageAs
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to be processed (mutually exclusive with 'files').
+                files:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/FileData"
+                  description: The files to be processed (mutually exclusive with 'file'). **This is to be only used with 'Get Upload URL' endpoint.**
+                model:
+                  $ref: "#/components/schemas/Model"
+                scale:
+                  type: integer
+                  description: The scaling factor for the task.
+                saveImageAs:
+                  $ref: "#/components/schemas/SaveImageAs"
+                enhanceFace:
+                  type: boolean
+                  description: Whether to enhance faces in the image.
+              oneOf:
+                - required: ["file"]
+                - required: ["files"]
+      responses:
+        "200":
+          description: Task request sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        description: The message returned.
+                        example: Task request sent successfully
+                      taskId:
+                        type: string
+                        description: The ID of the task that you can use to check the status.
+                        example: "123e4567-e89b-12d3-a456-426614174000"
+                      creditsToDeduct:
+                        type: integer
+                        description: The number of credits to deduct for the task.
+                        example: 10
+          headers:
+            x-task-cost:
+              schema:
+                type: integer
+              description: The number of credits deducted for the task.
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "Bad Request: Missing User"
+        "402":
+          description: Payment Required
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Insufficient credits
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                example: User not found
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                example: Error processing request
+      security:
+        - ApiKeyAuth: []
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        API key required to access the API. You can obtain an API key at [https://upscayl.org/account/api-keys](https://upscayl.org/account/api-keys)
+  schemas:
+    Model:
+      type: string
+      enum:
+        - upscayl-standard-4x
+        - upscayl-lite-4x
+        - clear-boost-4x
+        - crystal-plus-4x
+        - digital-art-4x
+        - digital-art-plus-4x
+        - natural-max-4x
+        - natural-plus-4x
+        - nature-boost-4x
+        - pure-boost-4x
+        - quick-clear-4x
+        - texture-boost-4x
+      description: The available AI models for upscaling
+
+    SaveImageAs:
+      type: string
+      enum:
+        - jpg
+        - png
+        - webp
+      description: The available image formats for saving
+
+    Status:
+      type: string
+      enum:
+        - ENHANCING
+        - PROCESSING
+        - PROCESSED
+        - PROCESSING_FAILED
+      description: The status of the task
+
+    FileData:
+      type: object
+      properties:
+        fileName:
+          type: string
+          description: The name of the file.
+          example: "1k2jj2b3c-cnb1234ij.jpg"
+        fileType:
+          type: string
+          description: The MIME type of the file.
+          example: "image/jpeg"
+        fileSize:
+          type: integer
+          description: The size of the file in bytes.
+          example: 123456
+        originalFileName:
+          type: string
+          description: The original name of the file.
+          example: "image.jpg"
+        path:
+          type: string
+          description: The path where the file is stored.
+          example: "users/1412v4124v/1k2jj2b3c-cnb1234ij.jpg"
+        createdAt:
+          type: integer
+          description: Timestamp of file creation.
+          example: 1640995200
+        expiresAt:
+          type: integer
+          description: Timestamp of file expiration.
+          example: 1640995200
+        dimensions:
+          type: object
+          properties:
+            width:
+              type: integer
+              description: The width of the image.
+            height:
+              type: integer
+              description: The height of the image.
+
+    TaskDocument:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: The ID of the user submitting the task.
+        email:
+          type: string
+          description: The email of the user.
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileData"
+        id:
+          type: string
+          description: The unique ID of the task.
+        enhanceFace:
+          type: boolean
+          description: Whether to enhance faces in the image.
+        model:
+          $ref: "#/components/schemas/Model"
+        scale:
+          type: integer
+          description: The scaling factor for the task.
+        saveImageAs:
+          $ref: "#/components/schemas/SaveImageAs"
+        compression:
+          type: integer
+          description: The compression level for the output image.
+        createdAt:
+          type: integer
+          description: Timestamp of task creation.
+        # creditsDeducted:
+        #   type: boolean
+        #   description: Whether credits have been deducted for the task.
+        filesCount:
+          type: integer
+          description: The number of files in the task.
+        status:
+          $ref: "#/components/schemas/Status"
+        batchMode:
+          type: boolean
+          description: Whether the task is in batch mode.
+        progress:
+          type: string
+          description: The progress of the task.
+        creditsToDeduct:
+          type: integer
+          description: The number of credits to deduct for the task.
+          example: 10
+        currentCredits:
+          type: integer
+          description: The current credits of the user.
+        currentExtraCredits:
+          type: integer
+          description: The current extra credits of the user.

@@ -64,13 +64,7 @@
     },
     {
       "group": "API Reference",
-      "pages": [
-        "start-a-new-task",
-        "get-upload-url",
-        "complete-a-multipart-upload",
-        "get-task-status",
-        "get-upscayl-history"
-      ]
+      "pages": ["start-task", "get-task-status", "get-upload-url", "complete-a-multipart-upload"]
     }
   ],
   "footerSocials": {
