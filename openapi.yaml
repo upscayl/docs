@@ -268,12 +268,13 @@ paths:
                 example: Error getting data
       security:
         - ApiKeyAuth: []
+
   /start-task:
     post:
       summary: Start Upscaling Task
       description: |
         This endpoint processes an upscaling task request, including file uploads.
-      operationId: getTaskStatus
+      operationId: startTask
       requestBody:
         required: true
         content:
@@ -289,12 +290,18 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: "The image file to be processed (mutually exclusive with 'files'). Supported formats: JPG, PNG, WEBP."
+                  description: "The image file to be processed. Supported formats: JPG, PNG, WEBP."
                 files:
                   type: array
                   items:
                     $ref: "#/components/schemas/FileData"
-                  description: The files to be processed (mutually exclusive with 'file'). **This is to be only used with 'Get Upload URL' endpoint.**
+                  description: "The files to be processed. **This is to be only used with 'Get Upload URL' endpoint.**"
+                urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  description: "Array of URLs pointing to images to be processed."
                 model:
                   $ref: "#/components/schemas/Model"
                 scale:
@@ -307,6 +314,7 @@ paths:
               oneOf:
                 - required: ["file"]
                 - required: ["files"]
+                - required: ["urls"]
       responses:
         "200":
           description: Task request sent successfully
@@ -368,6 +376,7 @@ paths:
                 example: Error processing request
       security:
         - ApiKeyAuth: []
+
 components:
   securitySchemes:
     ApiKeyAuth:
